@@ -15,6 +15,7 @@ import { useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import type { OrderIntentResponse, AgenticEnrollmentResponse } from "@/lib/crossmint-types";
 import { checkEnrollment, enrollPaymentMethod, createNewOrderIntent, fetchCardCredentials } from "@/lib/crossmint-api";
+import { verificationAppearance } from "@/lib/verification-appearance";
 import {
   OrderIntentVerification,
   PaymentMethodAgenticEnrollmentVerification,
@@ -54,6 +55,7 @@ export function IssueVirtualCard({
   const [merchantName, setMerchantName] = useState("");
   const [merchantUrl, setMerchantUrl] = useState("");
   const [maxAmount, setMaxAmount] = useState("");
+  const [period, setPeriod] = useState<"once" | "weekly" | "monthly" | "yearly">("once");
   const [description, setDescription] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,7 +95,11 @@ export function IssueVirtualCard({
     try {
       const token = jwt ?? getJwt();
       const intent = await createNewOrderIntent(token, agentId, paymentMethodId, [
-        { type: "maxAmount", value: maxAmount, details: { currency: "usd", period: "transaction" } },
+        {
+          type: "maxAmount",
+          value: maxAmount,
+          details: period === "once" ? { currency: "usd" } : { currency: "usd", period },
+        },
         { type: "description", value: description || `Purchase from ${merchantName}` },
       ]);
 
@@ -156,16 +162,31 @@ export function IssueVirtualCard({
               className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm outline-none focus:border-[#00C768] focus:ring-1 focus:ring-[#00C768]/20"
             />
           </div>
-          <div>
-            <label className="text-xs font-medium text-[#5F6B7A] block mb-1">Max amount (USD)</label>
-            <input
-              type="text"
-              value={maxAmount}
-              onChange={(e) => setMaxAmount(e.target.value)}
-              placeholder="e.g. 150.00"
-              required
-              className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm outline-none focus:border-[#00C768] focus:ring-1 focus:ring-[#00C768]/20"
-            />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="text-xs font-medium text-[#5F6B7A] block mb-1">Max amount (USD)</label>
+              <input
+                type="text"
+                value={maxAmount}
+                onChange={(e) => setMaxAmount(e.target.value)}
+                placeholder="e.g. 150.00"
+                required
+                className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm outline-none focus:border-[#00C768] focus:ring-1 focus:ring-[#00C768]/20"
+              />
+            </div>
+            <div className="w-32">
+              <label className="text-xs font-medium text-[#5F6B7A] block mb-1">Period</label>
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value as "once" | "weekly" | "monthly" | "yearly")}
+                className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm outline-none focus:border-[#00C768] focus:ring-1 focus:ring-[#00C768]/20 bg-white"
+              >
+                <option value="once">1 time</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
           </div>
           <div>
             <label className="text-xs font-medium text-[#5F6B7A] block mb-1">Description (optional)</label>
@@ -227,6 +248,7 @@ export function IssueVirtualCard({
           </div>
           <PaymentMethodAgenticEnrollmentVerification
             paymentMethodAgenticEnrollment={enrollment}
+            appearance={verificationAppearance}
             onVerificationComplete={() => createOrderIntentAndContinue()}
             onVerificationError={() => {
               setError("Enrollment verification failed");
@@ -253,6 +275,7 @@ export function IssueVirtualCard({
           </div>
           <OrderIntentVerification
             orderIntent={orderIntent}
+            appearance={verificationAppearance}
             onVerificationComplete={() => getCredentials(orderIntent.orderIntentId)}
             onVerificationError={() => getCredentials(orderIntent.orderIntentId)}
           />

@@ -62,6 +62,20 @@ export async function fetchAgents(jwt: string): Promise<AgentResponse[]> {
   return res.json();
 }
 
+/** Delete an agent by ID. */
+export async function deleteAgent(jwt: string, agentId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/agents/${agentId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-KEY": API_KEY,
+      Authorization: `Bearer ${jwt}`,
+    },
+  });
+
+  if (!res.ok) throw new Error(`Failed to delete agent (${res.status})`);
+}
+
 /** Create a new agent. An agent is required before issuing any virtual cards. */
 export async function createNewAgent(jwt: string, name: string, description?: string): Promise<AgentResponse> {
   const res = await fetch(`${BASE_URL}/agents`, {

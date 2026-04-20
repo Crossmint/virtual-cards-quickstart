@@ -51,3 +51,7 @@
     @apply font-sans;
   }
 }
+
+a[href="https://stytch.com/"] {
+  display: none !important;
+}

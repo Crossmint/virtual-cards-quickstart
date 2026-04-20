@@ -1,15 +1,34 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Bot, Loader2, Code } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Plus, Bot, Loader2, Code, Trash2, Copy, Check } from "lucide-react";
 import { useStytch, useStytchUser, StytchLogin, Products } from "@stytch/nextjs";
 import { useCrossmint } from "@crossmint/client-sdk-react-ui";
 import type { PaymentMethodResponse, AgentResponse, OrderIntentResponse } from "@/lib/crossmint-types";
-import { fetchAllData, createNewAgent, removePaymentMethod } from "@/lib/crossmint-api";
+import { fetchAllData, createNewAgent, deleteAgent, removePaymentMethod } from "@/lib/crossmint-api";
 import { SavedCardsList } from "@/components/saved-cards-list";
 import { SaveCardSection } from "@/components/save-card-section";
 import { IssueVirtualCard } from "@/components/issue-virtual-card";
 import { OrderIntentsList } from "@/components/order-intents-list";
+
+function PoweredByCrossmint() {
+  return (
+    <a
+      href="https://docs.crossmint.com/solutions/ai-agents/agent-wallets/overview"
+      target="_blank"
+      rel="noreferrer"
+      aria-label="Powered by Crossmint"
+      className="inline-block transition-opacity hover:opacity-80"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/powered-by-crossmint.svg"
+        alt="Powered by Crossmint"
+        className="h-8 w-auto"
+      />
+    </a>
+  );
+}
 
 // ─── Stytch login config ─────────────────────────────────────────────────────
 // Configures Google OAuth as the authentication method in the Stytch login UI.
@@ -23,6 +42,10 @@ const loginConfig = {
     loginRedirectURL: "http://localhost:3000",
     signupRedirectURL: "http://localhost:3000",
   },
+};
+
+const loginPresentation = {
+  theme: { "container-border": "transparent" },
 };
 
 // ─── Token authentication hook ───────────────────────────────────────────────
@@ -78,12 +101,47 @@ export default function Page() {
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-dvh bg-white px-4">
-          <StytchLogin config={loginConfig} />
+        <div className="flex flex-col items-center gap-2">
+          <StytchLogin config={loginConfig} presentation={loginPresentation} />
+          <PoweredByCrossmint />
+        </div>
       </div>
     );
   }
 
   return <AuthenticatedApp />;
+}
+
+// ─── Test card hint ─────────────────────────────────────────────────────────
+// Shows the test card number with a click-to-copy button.
+
+function TestCardHint() {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText("4242424242424242");
+    setCopied(true);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-[#F9FAFA] px-3 py-2 text-xs text-[#5F6B7A]">
+      <span>Use test card</span>
+      <button
+        onClick={handleCopy}
+        className="inline-flex items-center gap-1.5 font-mono text-[#0A1825] bg-white border border-[#E5E7EB] rounded-md px-2 py-1 hover:bg-[#E8F9EF] transition-colors"
+      >
+        4242424242424242
+        {copied ? (
+          <Check className="size-3 text-[#00C768]" />
+        ) : (
+          <Copy className="size-3 text-[#5F6B7A]" />
+        )}
+      </button>
+    </div>
+  );
 }
 
 // ─── Authenticated app ───────────────────────────────────────────────────────
@@ -119,6 +177,7 @@ function AuthenticatedApp() {
   const [issuingForCard, setIssuingForCard] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [creatingAgent, setCreatingAgent] = useState(false);
+  const [deletingAgent, setDeletingAgent] = useState(false);
   const [showAgentRaw, setShowAgentRaw] = useState(false);
 
   // Load all user data on mount: saved cards, agents, and issued virtual cards.
@@ -158,6 +217,19 @@ function AuthenticatedApp() {
     }
   };
 
+  const handleDeleteAgent = async () => {
+    if (!agent) return;
+    setDeletingAgent(true);
+    try {
+      await deleteAgent(getJwt(), agent.agentId);
+      setAgent(null);
+    } catch (err) {
+      console.error("Failed to delete agent:", err);
+    } finally {
+      setDeletingAgent(false);
+    }
+  };
+
   const handleCardSaved = () => {
     setShowSaveCard(false);
     fetchData();
@@ -176,7 +248,7 @@ function AuthenticatedApp() {
   return (
     <div className="flex flex-col h-dvh bg-white">
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
+        <div className="max-w-2xl mx-auto px-6 pt-8 pb-8 space-y-12">
           <div className="flex items-center justify-between">
             <span className="text-xs text-[#5F6B7A]">{userEmail}</span>
             <button
@@ -206,13 +278,23 @@ function AuthenticatedApp() {
                       <div className="text-xs text-[#5F6B7A] font-mono">{agent.agentId}</div>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setShowAgentRaw(!showAgentRaw)}
-                    className="text-[#5F6B7A] hover:text-[#0A1825] transition-colors p-1.5 rounded-md hover:bg-[#E5E7EB]/50"
-                    title="Raw data"
-                  >
-                    <Code className="size-3.5" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setShowAgentRaw(!showAgentRaw)}
+                      className="text-[#5F6B7A] hover:text-[#0A1825] transition-colors p-1.5 rounded-md hover:bg-[#E5E7EB]/50"
+                      title="Raw data"
+                    >
+                      <Code className="size-3.5" />
+                    </button>
+                    <button
+                      onClick={handleDeleteAgent}
+                      disabled={deletingAgent}
+                      className="text-[#5F6B7A] hover:text-red-500 transition-colors p-1.5 rounded-md hover:bg-red-50 disabled:opacity-50"
+                      title="Delete agent"
+                    >
+                      {deletingAgent ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+                    </button>
+                  </div>
                 </div>
                 {showAgentRaw && (
                   <pre className="mt-1 rounded-lg border border-[#E5E7EB] bg-[#F9FAFA] p-3 text-xs font-mono text-[#0A1825] overflow-auto max-h-96">
@@ -253,7 +335,8 @@ function AuthenticatedApp() {
             </div>
 
             {showSaveCard && (
-              <div className="mb-4">
+              <div className="mb-4 space-y-3">
+                <TestCardHint />
                 <SaveCardSection
                   jwt={getJwt()}
                   email={userEmail}
@@ -296,6 +379,10 @@ function AuthenticatedApp() {
             <h2 className="text-sm font-semibold text-[#0A1825] mb-3">Virtual Cards</h2>
             <OrderIntentsList orderIntents={orderIntents} loading={loading} getJwt={getJwt} />
           </section>
+
+          <div className="flex justify-center pt-4">
+            <PoweredByCrossmint />
+          </div>
         </div>
       </div>
     </div>

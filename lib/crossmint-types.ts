@@ -39,7 +39,7 @@ export type AgentResponse = {
 //   - description: free-text description of intended use
 //   - prompt: instructions for the agent
 export type Mandate =
-  | { type: "maxAmount"; value: string; details: { currency: string; period: "transaction" | "daily" | "monthly" | "yearly" } }
+  | { type: "maxAmount"; value: string; details: { currency: string; period?: "weekly" | "monthly" | "yearly" } }
   | { type: "description"; value: string }
   | { type: "prompt"; value: string };
 

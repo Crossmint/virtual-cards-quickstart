@@ -17,6 +17,7 @@ import {
 } from "@crossmint/client-sdk-react-ui";
 import type { AgenticEnrollmentResponse } from "@/lib/crossmint-types";
 import { checkEnrollment, enrollPaymentMethod } from "@/lib/crossmint-api";
+import { verificationAppearance } from "@/lib/verification-appearance";
 
 type Phase = "saving" | "checking-enrollment" | "verifying-enrollment";
 
@@ -92,6 +93,7 @@ export function SaveCardSection({
           </div>
           <PaymentMethodAgenticEnrollmentVerification
             paymentMethodAgenticEnrollment={enrollment}
+            appearance={verificationAppearance}
             onVerificationComplete={() => {
               if (savedPaymentMethodId) complete(savedPaymentMethodId);
             }}
