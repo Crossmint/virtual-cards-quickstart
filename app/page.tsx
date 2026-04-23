@@ -1,151 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Plus, Bot, Loader2, Code, Trash2, Copy, Check } from "lucide-react";
-import { useStytch, useStytchUser, StytchLogin, Products } from "@stytch/nextjs";
-import { useCrossmint } from "@crossmint/client-sdk-react-ui";
-import type { PaymentMethodResponse, AgentResponse, OrderIntentResponse } from "@/lib/crossmint-types";
-import { fetchAllData, createNewAgent, deleteAgent, removePaymentMethod } from "@/lib/crossmint-api";
-import { SavedCardsList } from "@/components/saved-cards-list";
-import { SaveCardSection } from "@/components/save-card-section";
-import { IssueVirtualCard } from "@/components/issue-virtual-card";
-import { OrderIntentsList } from "@/components/order-intents-list";
-
-function PoweredByCrossmint() {
-  return (
-    <a
-      href="https://docs.crossmint.com/solutions/ai-agents/agent-wallets/overview"
-      target="_blank"
-      rel="noreferrer"
-      aria-label="Powered by Crossmint"
-      className="inline-block transition-opacity hover:opacity-80"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/powered-by-crossmint.svg"
-        alt="Powered by Crossmint"
-        className="h-8 w-auto"
-      />
-    </a>
-  );
-}
-
-// ─── Stytch login config ─────────────────────────────────────────────────────
-// Configures Google OAuth as the authentication method in the Stytch login UI.
-// The redirect URL must match the one registered in your Stytch dashboard:
-// https://stytch.com/dashboard/redirect-urls
-
-const loginConfig = {
-  products: [Products.oauth],
-  oauthOptions: {
-    providers: [{ type: "google" as const }],
-    loginRedirectURL: "http://localhost:3000",
-    signupRedirectURL: "http://localhost:3000",
-  },
-};
-
-const loginPresentation = {
-  theme: { "container-border": "transparent" },
-};
-
-// ─── Token authentication hook ───────────────────────────────────────────────
-// After Stytch redirects back with a token in the URL (e.g. ?token=...&stytch_token_type=oauth),
-// this hook exchanges it for a session. The token is consumed once and the URL is cleaned up.
-
-function useStytchTokenAuth() {
-  const stytch = useStytch();
-  const { user } = useStytchUser();
-
-  const [authenticating, setAuthenticating] = useState(false);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-    const tokenType = params.get("stytch_token_type");
-
-    if (!token || tokenType !== "oauth" || user) return;
-
-    setAuthenticating(true);
-
-    const authenticate = async () => {
-      try {
-        await stytch.oauth.authenticate(token, { session_duration_minutes: 60 });
-        window.history.replaceState({}, "", "/");
-      } catch (err) {
-        console.error("Stytch OAuth authentication failed:", err);
-      }
-      setAuthenticating(false);
-    };
-    authenticate();
-  }, [stytch, user]);
-
-  return { authenticating };
-}
-
-// ─── Page ────────────────────────────────────────────────────────────────────
-// Entry point: shows a loading spinner while authenticating, the Stytch login
-// form if unauthenticated, or the main dashboard if logged in.
-
-export default function Page() {
-  const { user } = useStytchUser();
-  const { authenticating } = useStytchTokenAuth();
-
-  if (authenticating) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh bg-white">
-        <Loader2 className="size-5 animate-spin text-[#00C768]" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-dvh bg-white px-4">
-        <div className="flex flex-col items-center gap-2">
-          <StytchLogin config={loginConfig} presentation={loginPresentation} />
-          <PoweredByCrossmint />
-        </div>
-      </div>
-    );
-  }
-
-  return <AuthenticatedApp />;
-}
-
-// ─── Test card hint ─────────────────────────────────────────────────────────
-// Shows the test card number with a click-to-copy button.
-
-function TestCardHint() {
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText("4242424242424242");
-    setCopied(true);
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-[#F9FAFA] px-3 py-2 text-xs text-[#5F6B7A]">
-      <span>Use test card</span>
-      <button
-        onClick={handleCopy}
-        className="inline-flex items-center gap-1.5 font-mono text-[#0A1825] bg-white border border-[#E5E7EB] rounded-md px-2 py-1 hover:bg-[#E8F9EF] transition-colors"
-      >
-        4242424242424242
-        {copied ? (
-          <Check className="size-3 text-[#00C768]" />
-        ) : (
-          <Copy className="size-3 text-[#5F6B7A]" />
-        )}
-      </button>
-    </div>
-  );
-}
-
-// ─── Authenticated app ───────────────────────────────────────────────────────
-// Main dashboard shown after login. The flow is:
+// Dashboard shown after login. Redirects to /login if not authenticated.
 //
 //   1. Bridge Stytch JWT to Crossmint (so Crossmint SDK can authenticate requests)
 //   2. Fetch existing agents, saved cards, and order intents
@@ -154,21 +9,39 @@ function TestCardHint() {
 //   5. Issue a virtual card (order intent) with spending mandates
 //   6. View issued virtual cards and fetch their credentials
 
-function AuthenticatedApp() {
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Loader2 } from "lucide-react";
+import { useStytch, useStytchUser } from "@stytch/nextjs";
+import { useCrossmint } from "@crossmint/client-sdk-react-ui";
+import type { PaymentMethodResponse, AgentResponse, OrderIntentResponse } from "@/lib/crossmint-types";
+import { fetchAllData, createNewAgent, deleteAgent, removePaymentMethod } from "@/lib/crossmint-api";
+import { SavedCardsList } from "@/components/saved-cards-list";
+import { SaveCardSection } from "@/components/save-card-section";
+import { IssueVirtualCard } from "@/components/issue-virtual-card";
+import { OrderIntentsList } from "@/components/order-intents-list";
+import { AgentSection } from "@/components/agent-section";
+import { PoweredByCrossmint } from "@/components/powered-by-crossmint";
+
+export default function Page() {
   const stytch = useStytch();
   const { user } = useStytchUser();
   const { setJwt } = useCrossmint();
+  const router = useRouter();
 
-  const getJwt = () => stytch.session.getTokens()?.session_jwt ?? "";
   const userEmail = user?.emails?.[0]?.email ?? "";
+  const getJwt = () => stytch.session.getTokens()?.session_jwt ?? "";
+
+  // Redirect unauthenticated users to /login
+  useEffect(() => {
+    if (!user) router.replace("/login");
+  }, [user, router]);
 
   // Bridge Stytch session JWT to Crossmint so the SDK can authenticate API requests
   useEffect(() => {
     const tokens = stytch.session.getTokens();
-    if (tokens?.session_jwt) {
-      setJwt(tokens.session_jwt);
-    }
-  }, [stytch, user]);
+    if (tokens?.session_jwt) setJwt(tokens.session_jwt);
+  }, [stytch, user, setJwt]);
 
   const [agent, setAgent] = useState<AgentResponse | null>(null);
   const [savedCards, setSavedCards] = useState<PaymentMethodResponse[]>([]);
@@ -178,18 +51,12 @@ function AuthenticatedApp() {
   const [loading, setLoading] = useState(true);
   const [creatingAgent, setCreatingAgent] = useState(false);
   const [deletingAgent, setDeletingAgent] = useState(false);
-  const [showAgentRaw, setShowAgentRaw] = useState(false);
 
-  // Load all user data on mount: saved cards, agents, and issued virtual cards.
-  // Uses a single server action to fetch everything in parallel on the server,
-  // avoiding Next.js's sequential serialization of concurrent server action calls.
   const fetchData = useCallback(async () => {
+    const jwt = stytch.session.getTokens()?.session_jwt ?? "";
+    if (!jwt) return;
     try {
-      const jwt = getJwt();
-      if (!jwt) return;
-
       const { cards, agents, orderIntents } = await fetchAllData(jwt);
-
       setSavedCards(cards);
       setOrderIntents(orderIntents);
       if (agents.length > 0) setAgent(agents[0]);
@@ -198,20 +65,17 @@ function AuthenticatedApp() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [stytch]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (user) fetchData();
+  }, [user, fetchData]);
 
-  // Create a new agent — required before any virtual cards can be issued
   const handleCreateAgent = async () => {
     setCreatingAgent(true);
     try {
       const result = await createNewAgent(getJwt(), "Virtual Card Agent", "Default agent for virtual card issuance");
       setAgent(result);
-    } catch (err) {
-      console.error("Failed to create agent:", err);
     } finally {
       setCreatingAgent(false);
     }
@@ -223,8 +87,6 @@ function AuthenticatedApp() {
     try {
       await deleteAgent(getJwt(), agent.agentId);
       setAgent(null);
-    } catch (err) {
-      console.error("Failed to delete agent:", err);
     } finally {
       setDeletingAgent(false);
     }
@@ -245,6 +107,14 @@ function AuthenticatedApp() {
     fetchData();
   };
 
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-dvh bg-white">
+        <Loader2 className="size-5 animate-spin text-[#00C768]" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-dvh bg-white">
       <div className="flex-1 overflow-y-auto">
@@ -259,69 +129,15 @@ function AuthenticatedApp() {
             </button>
           </div>
 
-          {/* ── Step 1: Agent ─────────────────────────────────────────────── */}
-          {/* An agent must exist before virtual cards can be issued.         */}
-          <section>
-            <h2 className="text-sm font-semibold text-[#0A1825] mb-3">Agent</h2>
-            {loading ? (
-              <div className="flex items-center gap-2 text-sm text-[#5F6B7A] py-4">
-                <Loader2 className="size-4 animate-spin text-[#00C768]" />
-                <span>Loading...</span>
-              </div>
-            ) : agent ? (
-              <div>
-                <div className="flex items-center justify-between rounded-lg border border-[#E5E7EB] bg-[#F9FAFA] px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <Bot className="size-5 text-[#00C768]" />
-                    <div>
-                      <div className="text-sm font-medium text-[#0A1825]">{agent.metadata.name}</div>
-                      <div className="text-xs text-[#5F6B7A] font-mono">{agent.agentId}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setShowAgentRaw(!showAgentRaw)}
-                      className="text-[#5F6B7A] hover:text-[#0A1825] transition-colors p-1.5 rounded-md hover:bg-[#E5E7EB]/50"
-                      title="Raw data"
-                    >
-                      <Code className="size-3.5" />
-                    </button>
-                    <button
-                      onClick={handleDeleteAgent}
-                      disabled={deletingAgent}
-                      className="text-[#5F6B7A] hover:text-red-500 transition-colors p-1.5 rounded-md hover:bg-red-50 disabled:opacity-50"
-                      title="Delete agent"
-                    >
-                      {deletingAgent ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
-                    </button>
-                  </div>
-                </div>
-                {showAgentRaw && (
-                  <pre className="mt-1 rounded-lg border border-[#E5E7EB] bg-[#F9FAFA] p-3 text-xs font-mono text-[#0A1825] overflow-auto max-h-96">
-                    {JSON.stringify(agent, null, 2)}
-                  </pre>
-                )}
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-[#E5E7EB] bg-[#F9FAFA] p-4 text-center">
-                <p className="text-sm text-[#5F6B7A] mb-3">
-                  Create an agent to start issuing virtual cards.
-                </p>
-                <button
-                  onClick={handleCreateAgent}
-                  disabled={creatingAgent}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-[#00C768] hover:bg-[#05CE6C] disabled:opacity-50 px-4 py-2 rounded-md transition-colors"
-                >
-                  {creatingAgent ? <Loader2 className="size-3.5 animate-spin" /> : <Bot className="size-3.5" />}
-                  <span>{creatingAgent ? "Creating..." : "Create agent"}</span>
-                </button>
-              </div>
-            )}
-          </section>
+          <AgentSection
+            agent={agent}
+            loading={loading}
+            creating={creatingAgent}
+            deleting={deletingAgent}
+            onCreate={handleCreateAgent}
+            onDelete={handleDeleteAgent}
+          />
 
-          {/* ── Step 2: Save a payment method ─────────────────────────────── */}
-          {/* User adds a physical card via Crossmint's embedded UI, then     */}
-          {/* completes agentic enrollment (passkey) to authorize the agent.   */}
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-[#0A1825]">Saved Cards</h2>
@@ -336,7 +152,9 @@ function AuthenticatedApp() {
 
             {showSaveCard && (
               <div className="mb-4 space-y-3">
-                <TestCardHint />
+                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFA] px-3 py-2 text-xs text-[#5F6B7A]">
+                  Use test card <span className="font-mono text-[#0A1825]">4242 4242 4242 4242</span>
+                </div>
                 <SaveCardSection
                   jwt={getJwt()}
                   email={userEmail}
@@ -355,9 +173,6 @@ function AuthenticatedApp() {
             />
           </section>
 
-          {/* ── Step 3: Issue a virtual card ──────────────────────────────── */}
-          {/* Creates an order intent with spending mandates (max amount,     */}
-          {/* description). Requires passkey verification before activation.  */}
           {issuingForCard && agent && (
             <section>
               <h2 className="text-sm font-semibold text-[#0A1825] mb-4">Issue Virtual Card</h2>
@@ -372,9 +187,6 @@ function AuthenticatedApp() {
             </section>
           )}
 
-          {/* ── Step 4: View issued virtual cards ────────────────────────── */}
-          {/* Lists all order intents. Active ones can fetch card credentials */}
-          {/* (card number, expiration, CVC) for use at a merchant.          */}
           <section>
             <h2 className="text-sm font-semibold text-[#0A1825] mb-3">Virtual Cards</h2>
             <OrderIntentsList orderIntents={orderIntents} loading={loading} getJwt={getJwt} />
