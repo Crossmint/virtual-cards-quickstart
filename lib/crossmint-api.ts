@@ -16,96 +16,90 @@ import type {
 const BASE_URL = "https://staging.crossmint.com/api/unstable";
 const API_KEY = process.env.NEXT_PUBLIC_CROSSMINT_CLIENT_API_KEY ?? "";
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function log(label: string, data: unknown) {
+  console.log(`\n${"─".repeat(60)}`);
+  console.log(`▶ ${label}`);
+  console.log(JSON.stringify(data, null, 2));
+  console.log(`${"─".repeat(60)}\n`);
+}
+
+function authHeaders(jwt: string): HeadersInit {
+  return {
+    "Content-Type": "application/json",
+    "X-API-KEY": API_KEY,
+    Authorization: `Bearer ${jwt}`,
+  };
+}
+
 // ─── Payment methods ────────────────────────────────────────────────────────
 
 /** List all saved payment methods for the authenticated user. */
 export async function fetchPaymentMethods(jwt: string): Promise<PaymentMethodResponse[]> {
-  const res = await fetch(`${BASE_URL}/payment-methods`, {
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": API_KEY,
-      Authorization: `Bearer ${jwt}`,
-    },
-  });
-
+  const res = await fetch(`${BASE_URL}/payment-methods`, { headers: authHeaders(jwt) });
   if (!res.ok) throw new Error(`Failed to fetch payment methods (${res.status})`);
-  return res.json();
+  const data = await res.json();
+  log("GET /payment-methods → response", data);
+  return data;
 }
 
 /** Delete a saved payment method. */
 export async function removePaymentMethod(jwt: string, paymentMethodId: string): Promise<void> {
+  log("DELETE /payment-methods/:id → request", { paymentMethodId });
   const res = await fetch(`${BASE_URL}/payment-methods/${paymentMethodId}`, {
     method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": API_KEY,
-      Authorization: `Bearer ${jwt}`,
-    },
+    headers: authHeaders(jwt),
   });
-
   if (!res.ok) throw new Error(`Failed to delete payment method (${res.status})`);
+  log("DELETE /payment-methods/:id → success", { paymentMethodId, status: res.status });
 }
 
 // ─── Agents ─────────────────────────────────────────────────────────────────
 
 /** List all agents for the authenticated user. */
 export async function fetchAgents(jwt: string): Promise<AgentResponse[]> {
-  const res = await fetch(`${BASE_URL}/agents`, {
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": API_KEY,
-      Authorization: `Bearer ${jwt}`,
-    },
-  });
-
+  const res = await fetch(`${BASE_URL}/agents`, { headers: authHeaders(jwt) });
   if (!res.ok) throw new Error(`Failed to fetch agents (${res.status})`);
-  return res.json();
+  const data = await res.json();
+  log("GET /agents → response", data);
+  return data;
 }
 
 /** Delete an agent by ID. */
 export async function deleteAgent(jwt: string, agentId: string): Promise<void> {
+  log("DELETE /agents/:id → request", { agentId });
   const res = await fetch(`${BASE_URL}/agents/${agentId}`, {
     method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": API_KEY,
-      Authorization: `Bearer ${jwt}`,
-    },
+    headers: authHeaders(jwt),
   });
-
   if (!res.ok) throw new Error(`Failed to delete agent (${res.status})`);
+  log("DELETE /agents/:id → success", { agentId, status: res.status });
 }
 
 /** Create a new agent. An agent is required before issuing any virtual cards. */
 export async function createNewAgent(jwt: string, name: string, description?: string): Promise<AgentResponse> {
+  const body = { metadata: { name, description } };
+  log("POST /agents → request body", body);
   const res = await fetch(`${BASE_URL}/agents`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": API_KEY,
-      Authorization: `Bearer ${jwt}`,
-    },
-    body: JSON.stringify({ metadata: { name, description } }),
+    headers: authHeaders(jwt),
+    body: JSON.stringify(body),
   });
-
   if (!res.ok) throw new Error(`Failed to create agent (${res.status})`);
-  return res.json();
+  const data = await res.json();
+  log("POST /agents → response", data);
+  return data;
 }
 
 // ─── Order intents (virtual cards) ──────────────────────────────────────────
 
 /** List all order intents (issued virtual cards) for the authenticated user. */
 export async function fetchOrderIntents(jwt: string): Promise<OrderIntentResponse[]> {
-  const res = await fetch(`${BASE_URL}/order-intents`, {
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": API_KEY,
-      Authorization: `Bearer ${jwt}`,
-    },
-  });
-
+  const res = await fetch(`${BASE_URL}/order-intents`, { headers: authHeaders(jwt) });
   if (!res.ok) throw new Error(`Failed to fetch order intents (${res.status})`);
-  return res.json();
+  const data = await res.json();
+  log("GET /order-intents → response", data);
+  return data;
 }
 
 // ─── Batch fetch ────────────────────────────────────────────────────────────
@@ -117,13 +111,35 @@ export async function fetchAllData(jwt: string): Promise<{
   cards: PaymentMethodResponse[];
   agents: AgentResponse[];
   orderIntents: OrderIntentResponse[];
+  enrollmentStatuses: Record<string, AgenticEnrollmentResponse["status"]>;
 }> {
   const [cards, agents, orderIntents] = await Promise.all([
     fetchPaymentMethods(jwt),
     fetchAgents(jwt),
     fetchOrderIntents(jwt).catch(() => [] as OrderIntentResponse[]),
   ]);
-  return { cards, agents, orderIntents };
+
+  // Fan out enrollment checks for each saved card in parallel.
+  // A single failure shouldn't break the whole page — fall back to "not_started".
+  const enrollmentEntries = await Promise.all(
+    cards.map(async (c) => {
+      try {
+        const res = await checkEnrollment(jwt, c.paymentMethodId);
+        return [c.paymentMethodId, res.status] as const;
+      } catch {
+        return [c.paymentMethodId, "not_started" as const];
+      }
+    }),
+  );
+  const enrollmentStatuses = Object.fromEntries(enrollmentEntries);
+
+  log("fetchAllData → summary", {
+    cardCount: cards.length,
+    agentCount: agents.length,
+    orderIntentCount: orderIntents.length,
+    enrollmentStatuses,
+  });
+  return { cards, agents, orderIntents, enrollmentStatuses };
 }
 
 // ─── Agentic enrollment ─────────────────────────────────────────────────────
@@ -132,36 +148,50 @@ export async function fetchAllData(jwt: string): Promise<{
 
 /** Check the agentic enrollment status for a payment method. */
 export async function checkEnrollment(jwt: string, paymentMethodId: string): Promise<AgenticEnrollmentResponse> {
-  try {
-    const res = await fetch(`${BASE_URL}/payment-methods/${paymentMethodId}/agentic-enrollment`, {
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-KEY": API_KEY,
-        Authorization: `Bearer ${jwt}`,
-      },
-    });
-
-    if (!res.ok) throw new Error(`Failed to check enrollment (${res.status})`);
-    return res.json();
-  } catch {
+  const res = await fetch(`${BASE_URL}/payment-methods/${paymentMethodId}/agentic-enrollment`, {
+    headers: authHeaders(jwt),
+  });
+  // 404 is the server's signal that the card has never been enrolled.
+  // TODO: replace with a proper "not_enrolled" status once the API supports it.
+  if (res.status === 404) {
+    log(`GET /payment-methods/${paymentMethodId}/agentic-enrollment → 404`, { status: "not_started" });
     return { status: "not_started" };
   }
+  if (!res.ok) throw new Error(`Failed to check enrollment (${res.status})`);
+  const data = await res.json();
+  log(`GET /payment-methods/${paymentMethodId}/agentic-enrollment → response`, data);
+  return data;
 }
 
 /** Start agentic enrollment for a payment method. Returns a pending enrollment that needs passkey verification. */
 export async function enrollPaymentMethod(jwt: string, paymentMethodId: string, email: string): Promise<AgenticEnrollmentResponse> {
+  const body = { email };
+  log(`POST /payment-methods/${paymentMethodId}/agentic-enrollment → request body`, body);
   const res = await fetch(`${BASE_URL}/payment-methods/${paymentMethodId}/agentic-enrollment`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": API_KEY,
-      Authorization: `Bearer ${jwt}`,
-    },
-    body: JSON.stringify({ email }),
+    headers: authHeaders(jwt),
+    body: JSON.stringify(body),
   });
-
   if (!res.ok) throw new Error(`Failed to enroll payment method (${res.status})`);
-  return res.json();
+  const data = await res.json();
+  log(`POST /payment-methods/${paymentMethodId}/agentic-enrollment → response`, data);
+  return data;
+}
+
+/**
+ * Ensure a payment method is enrolled for agentic payments.
+ * - If already active/pending, returns the existing enrollment as-is.
+ * - If not started, initiates enrollment and returns the pending response.
+ * Combines the check + start calls into a single server round-trip.
+ */
+export async function ensureEnrollment(
+  jwt: string,
+  paymentMethodId: string,
+  email: string,
+): Promise<AgenticEnrollmentResponse> {
+  const existing = await checkEnrollment(jwt, paymentMethodId);
+  if (existing.status !== "not_started") return existing;
+  return enrollPaymentMethod(jwt, paymentMethodId, email);
 }
 
 // ─── Virtual card issuance ──────────────────────────────────────────────────
@@ -171,22 +201,17 @@ export async function enrollPaymentMethod(jwt: string, paymentMethodId: string, 
  * The order intent may require passkey verification before becoming active.
  */
 export async function createNewOrderIntent(jwt: string, agentId: string, paymentMethodId: string, mandates: Mandate[]): Promise<OrderIntentResponse> {
+  const body = { agentId, payment: { paymentMethodId }, mandates };
+  log("POST /order-intents → request body", body);
   const res = await fetch(`${BASE_URL}/order-intents`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": API_KEY,
-      Authorization: `Bearer ${jwt}`,
-    },
-    body: JSON.stringify({
-      agentId,
-      payment: { paymentMethodId },
-      mandates,
-    }),
+    headers: authHeaders(jwt),
+    body: JSON.stringify(body),
   });
-
   if (!res.ok) throw new Error(`Failed to create order intent (${res.status})`);
-  return res.json();
+  const data = await res.json();
+  log("POST /order-intents → response", data);
+  return data;
 }
 
 /**
@@ -198,16 +223,15 @@ export async function fetchCardCredentials(
   orderIntentId: string,
   merchant: { name: string; url: string; countryCode: string },
 ): Promise<CardCredentials> {
+  const body = { merchant };
+  log(`POST /order-intents/${orderIntentId}/credentials → request body`, body);
   const res = await fetch(`${BASE_URL}/order-intents/${orderIntentId}/credentials`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": API_KEY,
-      Authorization: `Bearer ${jwt}`,
-    },
-    body: JSON.stringify({ merchant }),
+    headers: authHeaders(jwt),
+    body: JSON.stringify(body),
   });
-
   if (!res.ok) throw new Error(`Failed to fetch card credentials (${res.status})`);
-  return res.json();
+  const data = await res.json();
+  log(`POST /order-intents/${orderIntentId}/credentials → response`, data);
+  return data;
 }

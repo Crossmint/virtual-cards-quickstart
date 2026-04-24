@@ -71,7 +71,7 @@ function OrderIntentItem({ oi, getJwt }: { oi: OrderIntentResponse; getJwt: () =
               <button
                 onClick={handleFetchCredentials}
                 disabled={fetchingCreds}
-                className="text-xs px-3 py-1.5 rounded-md border text-[#00C768] border-[#00C768]/30 hover:bg-[#E8F9EF] disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
+                className="text-xs px-3 py-1.5 rounded-md border bg-white text-[#5F6B7A] border-[#E5E7EB] hover:bg-[#F0F1F1] hover:text-[#0A1825] disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
               >
                 {fetchingCreds && <Loader2 className="size-3 animate-spin" />}
                 {fetchingCreds ? "Fetching..." : "Fetch credentials"}
@@ -79,12 +79,16 @@ function OrderIntentItem({ oi, getJwt }: { oi: OrderIntentResponse; getJwt: () =
             )
           )}
           <span
-            className={`text-xs font-medium ${
-              oi.phase === "active" ? "text-[#00C768]" : oi.phase === "expired" ? "text-red-500" : "text-amber-600"
+            title={oi.phase}
+            className={`size-2 rounded-full ${
+              oi.phase === "active"
+                ? "bg-[#00C768]"
+                : oi.phase === "expired"
+                  ? "bg-red-500"
+                  : "bg-amber-500"
             }`}
-          >
-            {oi.phase}
-          </span>
+          />
+          <span className="sr-only">{oi.phase}</span>
         </div>
       </div>
 

@@ -173,6 +173,7 @@ function AuthenticatedApp() {
   const [agent, setAgent] = useState<AgentResponse | null>(null);
   const [savedCards, setSavedCards] = useState<PaymentMethodResponse[]>([]);
   const [orderIntents, setOrderIntents] = useState<OrderIntentResponse[]>([]);
+  const [enrollmentStatuses, setEnrollmentStatuses] = useState<Record<string, string>>({});
   const [showSaveCard, setShowSaveCard] = useState(false);
   const [issuingForCard, setIssuingForCard] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -188,10 +189,11 @@ function AuthenticatedApp() {
       const jwt = getJwt();
       if (!jwt) return;
 
-      const { cards, agents, orderIntents } = await fetchAllData(jwt);
+      const { cards, agents, orderIntents, enrollmentStatuses } = await fetchAllData(jwt);
 
       setSavedCards(cards);
       setOrderIntents(orderIntents);
+      setEnrollmentStatuses(enrollmentStatuses);
       if (agents.length > 0) setAgent(agents[0]);
     } catch (err) {
       console.error("Failed to fetch profile data:", err);
@@ -327,7 +329,7 @@ function AuthenticatedApp() {
               <h2 className="text-sm font-semibold text-[#0A1825]">Saved Cards</h2>
               <button
                 onClick={() => setShowSaveCard(true)}
-                className="flex items-center gap-1.5 text-xs text-[#00C768] hover:text-[#05CE6C] transition-colors px-2.5 py-1.5 rounded-md hover:bg-[#E8F9EF] border border-[#00C768]/30"
+                className="flex items-center gap-1.5 text-xs text-[#5F6B7A] hover:text-[#0A1825] transition-colors px-2.5 py-1.5 rounded-md hover:bg-[#F0F1F1] border border-[#E5E7EB]"
               >
                 <Plus className="size-3.5" />
                 <span>Add card</span>
@@ -339,7 +341,6 @@ function AuthenticatedApp() {
                 <TestCardHint />
                 <SaveCardSection
                   jwt={getJwt()}
-                  email={userEmail}
                   onCardSaved={handleCardSaved}
                   onCancel={() => setShowSaveCard(false)}
                 />
@@ -350,6 +351,9 @@ function AuthenticatedApp() {
               cards={savedCards}
               loading={loading}
               canIssue={!!agent}
+              jwt={getJwt()}
+              email={userEmail}
+              enrollmentStatuses={enrollmentStatuses}
               onIssueVirtualCard={(paymentMethodId) => setIssuingForCard(paymentMethodId)}
               onDeleteCard={handleDeleteCard}
             />
@@ -364,7 +368,6 @@ function AuthenticatedApp() {
               <IssueVirtualCard
                 agentId={agent.agentId}
                 paymentMethodId={issuingForCard}
-                email={userEmail}
                 getJwt={getJwt}
                 onCardIssued={handleCardIssued}
                 onCancel={() => setIssuingForCard(null)}
