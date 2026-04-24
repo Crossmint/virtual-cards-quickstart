@@ -1,8 +1,13 @@
 "use server";
 
 // Server actions for all Crossmint API calls.
-// These run on the server side (Next.js server actions) so the API key is not exposed to the client.
-// Every request requires a Stytch session JWT passed from the client.
+//
+// These endpoints (/payment-methods, /agents, /order-intents) are user-scoped
+// and Crossmint requires a client-side API key + user JWT to auth them — a
+// server key is rejected with 403. The server-action layer here is purely a
+// CORS proxy (the staging API doesn't accept direct browser fetches), not a
+// secrets boundary. The same NEXT_PUBLIC_* client key is also bundled to the
+// browser for the Crossmint React SDK in app/layout.tsx.
 
 import type {
   AgenticEnrollmentResponse,
@@ -105,7 +110,7 @@ export async function fetchOrderIntents(jwt: string): Promise<OrderIntentRespons
 // ─── Batch fetch ────────────────────────────────────────────────────────────
 // Next.js serializes concurrent server action calls from the client, so
 // fetching cards, agents, and intents as separate calls runs sequentially.
-// This single action fetches all data in parallel on the server side.
+// This single action fetches all three in parallel on the server side.
 
 export async function fetchAllData(jwt: string): Promise<{
   cards: PaymentMethodResponse[];

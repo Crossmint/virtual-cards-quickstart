@@ -42,7 +42,7 @@ NEXT_PUBLIC_CROSSMINT_CLIENT_API_KEY=your-crossmint-client-api-key
 
 3. Configure Stytch redirect URLs:
 
-   In your [Stytch dashboard](https://stytch.com/dashboard/redirect-urls), add `http://localhost:3000` as a redirect URL for both **Login** and **Signup** under OAuth.
+   In your [Stytch dashboard](https://stytch.com/dashboard/redirect-urls), add `http://localhost:3000/login` as a redirect URL for both **Login** and **Signup** under OAuth.
 
 4. Start the dev server:
 
@@ -57,16 +57,19 @@ Open [http://localhost:3000](http://localhost:3000).
 ```
 app/
   layout.tsx             Root layout — wraps the app with Stytch and Crossmint providers
-  page.tsx               Main page — authentication flow and dashboard UI
+  page.tsx               Dashboard route — redirects to /login if not authenticated
+  login/page.tsx         Stytch login + OAuth token exchange
 
 lib/
   crossmint-api.ts       Server actions for all Crossmint API calls
 
 components/
+  agent-section.tsx       Agent display / create / delete
   save-card-section.tsx   Save a payment method + agentic enrollment verification
   saved-cards-list.tsx    List saved payment methods with delete/issue actions
   issue-virtual-card.tsx  Form to create an order intent with spending mandates
   order-intents-list.tsx  List issued virtual cards and fetch their credentials
+  powered-by-crossmint.tsx  Branding link
 ```
 
 ## Key concepts
@@ -96,7 +99,7 @@ Once verified, virtual card credentials (card number, expiration, CVC) can be fe
 
 ## API reference
 
-All Crossmint API calls go through server actions in `lib/crossmint-api.ts`. The base URL is `https://staging.crossmint.com/api/unstable`. Every request requires:
+All Crossmint API calls live in `lib/crossmint-api.ts` as Next.js server actions — the staging API doesn't allow CORS, so every call is proxied through the server. The base URL is `https://staging.crossmint.com/api/unstable`. Every request requires:
 
 - `X-API-KEY` header with your client API key
 - `Authorization: Bearer {jwt}` header with the Stytch session JWT
