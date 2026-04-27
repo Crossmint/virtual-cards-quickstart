@@ -13,12 +13,19 @@ import { PoweredByCrossmint } from "@/components/powered-by-crossmint";
 
 // Stytch login config — Google OAuth. The redirect URL must match the one
 // registered in your Stytch dashboard: https://stytch.com/dashboard/redirect-urls
+// Derived from window.location.origin so it works on localhost, Vercel previews,
+// production, and custom domains without env vars.
+const redirectUrl =
+  typeof window !== "undefined"
+    ? `${window.location.origin}/login`
+    : "/login";
+
 const loginConfig = {
   products: [Products.oauth],
   oauthOptions: {
     providers: [{ type: "google" as const }],
-    loginRedirectURL: "http://localhost:3000",
-    signupRedirectURL: "http://localhost:3000",
+    loginRedirectURL: redirectUrl,
+    signupRedirectURL: redirectUrl,
   },
 };
 
