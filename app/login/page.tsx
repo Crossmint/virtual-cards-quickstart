@@ -9,7 +9,7 @@ import {
   StytchLogin,
   Products,
 } from "@stytch/nextjs";
-import { PoweredByCrossmint } from "@/components/powered-by-crossmint";
+import { LandingPage } from "@/components/landing-page";
 
 // Stytch login config — Google OAuth. The redirect URL must match the one
 // registered in your Stytch dashboard: https://stytch.com/dashboard/redirect-urls
@@ -76,11 +76,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-dvh bg-white px-4">
-      <div className="flex flex-col items-center gap-2">
+    <LandingPage>
+      <div className="w-full max-w-md bg-white rounded-3xl border shadow-lg overflow-hidden">
         <StytchLogin config={loginConfig} presentation={loginPresentation} />
-        <PoweredByCrossmint />
       </div>
-    </div>
+    </LandingPage>
   );
 }

@@ -21,7 +21,7 @@ import { SaveCardSection } from "@/components/save-card-section";
 import { IssueVirtualCard } from "@/components/issue-virtual-card";
 import { OrderIntentsList } from "@/components/order-intents-list";
 import { AgentSection } from "@/components/agent-section";
-import { PoweredByCrossmint } from "@/components/powered-by-crossmint";
+import { Footer } from "@/components/footer";
 
 export default function Page() {
   const stytch = useStytch();
@@ -199,11 +199,9 @@ export default function Page() {
             <OrderIntentsList orderIntents={orderIntents} loading={loading} getJwt={getJwt} />
           </section>
 
-          <div className="flex justify-center pt-4">
-            <PoweredByCrossmint />
-          </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
