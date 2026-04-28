@@ -77,7 +77,7 @@ export default function LoginPage() {
 
   return (
     <LandingPage>
-      <div className="w-full max-w-md bg-white rounded-3xl border shadow-lg overflow-hidden">
+      <div className="w-full max-w-md bg-white rounded-3xl border shadow-lg overflow-hidden flex items-center justify-center">
         <StytchLogin config={loginConfig} presentation={loginPresentation} />
       </div>
     </LandingPage>
