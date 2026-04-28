@@ -105,7 +105,7 @@ export function LandingPage({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Right side - Auth Form */}
-      <div className="flex flex-col items-center justify-center bg-gray-50 px-6 py-12 col-span-1 lg:col-span-3">
+      <div className="flex flex-col items-center justify-center min-h-dvh lg:min-h-0 bg-gray-50 px-6 py-12 col-span-1 lg:col-span-3">
         <div className="lg:hidden mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Virtual Cards for Agents

@@ -1,105 +1,77 @@
-# Virtual Cards Quickstart
 
-Issue virtual credit cards through Crossmint's Agentic Payments API. This quickstart demonstrates the full flow: authenticate a user, save a payment method, enroll it for agent-initiated payments, and issue virtual cards with spending limits.
 
-## How it works
+<div align="center">
+<img width="200" alt="Image" src="https://github.com/user-attachments/assets/8b617791-cd37-4a5a-8695-a7c9018b7c70" />
+<br>
+<br>
+<h1>Virtual Cards Quickstart</h1>
 
-```
-1. Authenticate        User logs in via Stytch (Google OAuth)
-2. Create Agent        An agent is created to manage virtual card issuance
-3. Save Card           User adds a physical card via Crossmint's embedded UI
-4. Agentic Enrollment  Card is enrolled for agent-initiated payments (passkey verification)
-5. Issue Virtual Card  Agent creates an order intent with spending mandates
-6. Get Credentials     Virtual card number, expiration, and CVC are retrieved
-```
+<div align="center">
+<a href="https://virtual-cards.demos-crossmint.com">Live Demo</a> | <a href="https://docs.crossmint.com/agents/overview">Docs</a> | <a href="https://www.crossmint.com/quickstarts">See all quickstarts</a>
+</div>
 
-## Prerequisites
+<br>
+<br>
+</div>
 
-- [Node.js](https://nodejs.org/) 18+
-- [pnpm](https://pnpm.io/)
-- A [Crossmint](https://www.crossmint.com/) account with a **client-side API key**
-- A [Stytch](https://stytch.com/) account with **Google OAuth** enabled
+## Introduction
+Issue virtual credit cards through Crossmint's Agentic Payments API. This quickstart demonstrates the full flow from user authentication to issuing scoped virtual cards with spending limits — for both human users and AI agents.
+
+**Learn how to:**
+- Authenticate a user via Stytch (Google OAuth)
+- Create an agent to manage virtual card issuance
+- Save a payment method via Crossmint's embedded UI
+- Enroll a card for agent-initiated payments with passkey verification
+- Issue virtual cards with per-transaction, daily, and monthly spending mandates
+- Retrieve virtual card credentials (card number, expiration, CVC)
+
+## Deploy
+Easily deploy the template to Vercel with the button below. You will need to set the required environment variables in the Vercel dashboard.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FCrossmint%2Fvirtual-cards-quickstart&env=NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN,NEXT_PUBLIC_CROSSMINT_CLIENT_API_KEY)
 
 ## Setup
-
-1. Clone the repo and install dependencies:
-
+1. Clone the repository and navigate to the project folder:
 ```bash
-cd virtual-cards-quickstart
-pnpm install
+git clone https://github.com/Crossmint/virtual-cards-quickstart.git && cd virtual-cards-quickstart
 ```
 
-2. Copy the environment file and fill in your keys:
+2. Install all dependencies:
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+# or
+bun install
+```
 
+3. Set up the environment variables:
 ```bash
 cp .env.example .env.local
 ```
 
-```
-NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN=your-stytch-public-token
-NEXT_PUBLIC_CROSSMINT_CLIENT_API_KEY=your-crossmint-client-api-key
+4. Get a Crossmint client API key from [here](https://docs.crossmint.com/introduction/platform/api-keys/client-side) and a Stytch public token from the [Stytch dashboard](https://stytch.com/dashboard), then add them to the `.env.local` file:
+```bash
+NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN=your_stytch_public_token
+NEXT_PUBLIC_CROSSMINT_CLIENT_API_KEY=your_crossmint_client_api_key
 ```
 
-3. Configure Stytch redirect URLs:
+5. Configure Stytch redirect URLs:
 
    In your [Stytch dashboard](https://stytch.com/dashboard/redirect-urls), add `http://localhost:3000/login` as a redirect URL for both **Login** and **Signup** under OAuth.
 
-4. Start the dev server:
-
+6. Run the development server:
 ```bash
+npm run dev
+# or
+yarn dev
+# or
 pnpm dev
+# or
+bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-## Project structure
-
-```
-app/
-  layout.tsx             Root layout — wraps the app with Stytch and Crossmint providers
-  page.tsx               Dashboard route — redirects to /login if not authenticated
-  login/page.tsx         Stytch login + OAuth token exchange
-
-lib/
-  crossmint-api.ts       Server actions for all Crossmint API calls
-
-components/
-  agent-section.tsx       Agent display / create / delete
-  save-card-section.tsx   Save a payment method + agentic enrollment verification
-  saved-cards-list.tsx    List saved payment methods with delete/issue actions
-  issue-virtual-card.tsx  Form to create an order intent with spending mandates
-  order-intents-list.tsx  List issued virtual cards and fetch their credentials
-  powered-by-crossmint.tsx  Branding link
-```
-
-## Key concepts
-
-### Agents
-
-An agent represents an entity authorized to initiate payments on behalf of a user. You create one agent per user, and it is referenced when issuing virtual cards.
-
-**API:** `POST /agents` — see `createNewAgent()` in `lib/crossmint-api.ts`
-
-### Payment methods & agentic enrollment
-
-After a user saves a card through Crossmint's embedded UI, it must be **enrolled for agentic payments**. This involves a passkey verification step that authorizes the agent to use the card.
-
-**API:** `POST /payment-methods/{id}/agentic-enrollment` — see `enrollPaymentMethod()` in `lib/crossmint-api.ts`
-
-### Order intents (virtual cards)
-
-An order intent represents a virtual card issued against a saved payment method. It includes **mandates** — rules that constrain how the card can be used:
-
-- `maxAmount` — maximum spend per transaction, day, month, or year
-- `description` — free-text description of the intended use
-
-Once verified, virtual card credentials (card number, expiration, CVC) can be fetched.
-
-**API:** `POST /order-intents` and `POST /order-intents/{id}/credentials` — see `createNewOrderIntent()` and `fetchCardCredentials()` in `lib/crossmint-api.ts`
-
-## API reference
-
-All Crossmint API calls live in `lib/crossmint-api.ts` as Next.js server actions — the staging API doesn't allow CORS, so every call is proxied through the server. The base URL is `https://staging.crossmint.com/api/unstable`. Every request requires:
-
-- `X-API-KEY` header with your client API key
-- `Authorization: Bearer {jwt}` header with the Stytch session JWT
+## Using in production
+1. Create a [production API key](https://docs.crossmint.com/introduction/platform/api-keys/client-side).
