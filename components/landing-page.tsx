@@ -35,10 +35,10 @@ export function LandingPage({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-5">
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
       {/* Left side - Information with background */}
       <div
-        className="relative hidden lg:flex flex-col rounded-[20px] justify-center px-18 py-8 m-3 col-span-2"
+        className="relative hidden lg:flex flex-col rounded-[20px] justify-center px-18 py-8 m-3"
         style={{
           backgroundImage: `url('/grid-bg.png')`,
           backgroundSize: "cover",
@@ -105,7 +105,7 @@ export function LandingPage({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Right side - Auth Form */}
-      <div className="flex flex-col items-center justify-center bg-gray-50 px-6 py-12 col-span-1 lg:col-span-3">
+      <div className="flex flex-col items-center justify-center bg-gray-50 px-6 py-12">
         <div className="lg:hidden mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Virtual Cards for Agents

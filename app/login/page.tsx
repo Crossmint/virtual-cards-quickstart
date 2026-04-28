@@ -39,13 +39,14 @@ function useStytchTokenAuth() {
   const stytch = useStytch();
   const { user } = useStytchUser();
 
-  const [token] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get("stytch_token_type") === "oauth"
-      ? params.get("token")
-      : null;
-  });
+    if (params.get("stytch_token_type") === "oauth") {
+      setToken(params.get("token"));
+    }
+  }, []);
 
   useEffect(() => {
     if (!token || user) return;
@@ -77,7 +78,7 @@ export default function LoginPage() {
 
   return (
     <LandingPage>
-      <div className="w-full max-w-md bg-white rounded-3xl border shadow-lg overflow-hidden">
+      <div className="w-fit bg-white rounded-3xl border shadow-lg overflow-hidden">
         <StytchLogin config={loginConfig} presentation={loginPresentation} />
       </div>
     </LandingPage>
