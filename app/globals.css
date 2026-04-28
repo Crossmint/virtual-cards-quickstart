@@ -50,6 +50,15 @@
   html {
     @apply font-sans;
   }
+
+  button:not([disabled]),
+  [role="button"]:not([disabled]) {
+    cursor: pointer;
+  }
+
+  .filter-green {
+    filter: brightness(0) saturate(100%) invert(29%) sepia(66%) saturate(2945%) hue-rotate(91deg) brightness(95%) contrast(104%);
+  }
 }
 
 a[href="https://stytch.com/"] {
