@@ -14,7 +14,7 @@ const features = [
     title: "Scoped Virtual Cards",
     description:
       "Create virtual cards with per-transaction, daily, and monthly spending limits enforced at the network level. Each request returns a new, scoped card number.",
-    iconPath: "/trending-up.svg",
+    iconPath: "/gauge.svg",
   },
   {
     title: "Agent-Ready Payments",
