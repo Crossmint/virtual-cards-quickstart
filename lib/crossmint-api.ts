@@ -201,6 +201,17 @@ export async function ensureEnrollment(
 
 // ─── Virtual card issuance ──────────────────────────────────────────────────
 
+/** Delete an order intent (virtual card) by ID. */
+export async function deleteOrderIntent(jwt: string, orderIntentId: string): Promise<void> {
+  log("DELETE /order-intents/:id → request", { orderIntentId });
+  const res = await fetch(`${BASE_URL}/order-intents/${orderIntentId}`, {
+    method: "DELETE",
+    headers: authHeaders(jwt),
+  });
+  if (!res.ok) throw new Error(`Failed to delete order intent (${res.status})`);
+  log("DELETE /order-intents/:id → success", { orderIntentId, status: res.status });
+}
+
 /**
  * Create an order intent (virtual card) with spending mandates.
  * The order intent may require passkey verification before becoming active.
