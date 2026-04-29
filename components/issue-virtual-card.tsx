@@ -1,19 +1,8 @@
 "use client";
 
-// Issue a virtual card (order intent) against a saved payment method.
-// The card must already be enrolled for agentic payments — enrollment
-// is a separate step handled from the card row.
-//
-// Flow:
-//   1. "form"                 — User fills in merchant details and spending limits
-//   2. "creating"             — Create the order intent with mandates (spending rules)
-//   3. "order-verification"   — User authorizes spending via passkey (if required)
-//   4. "fetching-credentials" — Retrieve the virtual card credentials
-//   5. "done"                 — Virtual card issued successfully
-
-import { useState } from "react";
-import { Loader2, ShieldCheck } from "lucide-react";
-import type { OrderIntentResponse } from "@/lib/crossmint-types";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, ShieldCheck, CreditCard, ChevronsUpDown } from "lucide-react";
+import type { OrderIntentResponse, PaymentMethodResponse } from "@/lib/crossmint-types";
 import { createNewOrderIntent, fetchCardCredentials } from "@/lib/crossmint-api";
 import { verificationAppearance } from "@/lib/verification-appearance";
 import { OrderIntentVerification } from "@crossmint/client-sdk-react-ui";
@@ -26,15 +15,33 @@ type Step =
   | "done"
   | "error";
 
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function cardLabel(card: PaymentMethodResponse) {
+  const brand = card.card?.brand ? capitalize(card.card.brand) : "Card";
+  const last4 = card.card?.last4 ?? "????";
+  return { brand, last4 };
+}
+
+function cardExpDisplay(card: PaymentMethodResponse) {
+  const m = card.card?.expiration?.month ?? "";
+  const y = card.card?.expiration?.year ?? "";
+  return m && y ? `Exp. date ${m}/${y.slice(-2)}` : null;
+}
+
 export function IssueVirtualCard({
   agentId,
   paymentMethodId,
+  cards,
   getJwt,
   onCardIssued,
   onCancel,
 }: {
   agentId: string;
   paymentMethodId: string;
+  cards: PaymentMethodResponse[];
   getJwt: () => string;
   onCardIssued: () => void;
   onCancel: () => void;
@@ -43,12 +50,27 @@ export function IssueVirtualCard({
   const [error, setError] = useState("");
   const [orderIntent, setOrderIntent] = useState<OrderIntentResponse | null>(null);
 
-  // Form fields for the order intent
+  const [selectedCardId, setSelectedCardId] = useState(paymentMethodId);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const selectorRef = useRef<HTMLDivElement>(null);
+
   const [merchantName, setMerchantName] = useState("");
   const [merchantUrl, setMerchantUrl] = useState("");
   const [maxAmount, setMaxAmount] = useState("");
   const [period, setPeriod] = useState<"once" | "weekly" | "monthly" | "yearly">("once");
   const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (selectorRef.current && !selectorRef.current.contains(e.target as Node)) {
+        setSelectorOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selectedCard = cards.find((c) => c.paymentMethodId === selectedCardId) ?? cards[0];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +78,7 @@ export function IssueVirtualCard({
     setStep("creating");
 
     try {
-      const intent = await createNewOrderIntent(getJwt(), agentId, paymentMethodId, [
+      const intent = await createNewOrderIntent(getJwt(), agentId, selectedCardId, [
         {
           type: "maxAmount",
           value: maxAmount,
@@ -78,7 +100,6 @@ export function IssueVirtualCard({
     }
   };
 
-  // Fetch the virtual card credentials (card number, expiration, CVC)
   const getCredentials = async (orderIntentId: string) => {
     setStep("fetching-credentials");
     try {
@@ -95,10 +116,58 @@ export function IssueVirtualCard({
     }
   };
 
-  // ── Step 1: Form ──────────────────────────────────────────────────────────
   if (step === "form") {
+    const { brand, last4 } = selectedCard ? cardLabel(selectedCard) : { brand: "Card", last4: "????" };
+    const expDisplay = selectedCard ? cardExpDisplay(selectedCard) : null;
+
     return (
-      <div className="rounded-lg border border-[#E5E7EB] bg-white overflow-hidden">
+      <div className="rounded-[10px] border border-[rgba(0,0,0,0.1)] bg-white overflow-hidden">
+        {/* Card selector */}
+        <div className="p-4 pb-4">
+          <label className="text-xs font-medium text-[#00150d]/60 block mb-1.5">Origin source</label>
+          <div className="relative" ref={selectorRef}>
+            <button
+              type="button"
+              onClick={() => cards.length > 1 && setSelectorOpen((o) => !o)}
+              className={`w-full flex items-center gap-3 rounded-lg bg-[#F6F6F6] px-4 py-3 text-left ${cards.length > 1 ? "cursor-pointer hover:bg-[#efefef] transition-colors" : "cursor-default"}`}
+            >
+              <CreditCard className="size-5 text-[#05B959] shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-[#00150d]">{brand} •••• {last4}</div>
+                {expDisplay && <div className="text-xs text-[#00150d]/50">{expDisplay}</div>}
+              </div>
+              {cards.length > 1 && (
+                <ChevronsUpDown className="size-4 text-[#00150d] shrink-0" />
+              )}
+            </button>
+
+            {selectorOpen && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-[8px] border border-[rgba(0,0,0,0.1)] shadow-md py-1 z-50">
+                {cards.map((c) => {
+                  const { brand: b, last4: l } = cardLabel(c);
+                  const exp = cardExpDisplay(c);
+                  return (
+                    <button
+                      key={c.paymentMethodId}
+                      type="button"
+                      onClick={() => { setSelectedCardId(c.paymentMethodId); setSelectorOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#F6F6F6] transition-colors text-left"
+                    >
+                      <CreditCard className="size-4 text-[#05B959] shrink-0" />
+                      <div>
+                        <div className="text-sm font-medium text-[#00150d]">{b} •••• {l}</div>
+                        {exp && <div className="text-xs text-[#00150d]/50">{exp}</div>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-[rgba(0,0,0,0.08)]" />
+
         <form onSubmit={handleSubmit} className="p-4 space-y-3">
           <div className="flex justify-end">
             <button
@@ -110,51 +179,51 @@ export function IssueVirtualCard({
                 setPeriod("once");
                 setDescription("Weekly groceries");
               }}
-              className="text-xs text-[#00C768] hover:text-[#05CE6C] underline underline-offset-2"
+              className="text-xs text-[#05B959] hover:text-[#049d4c] underline underline-offset-2"
             >
               Fill example details
             </button>
           </div>
           <div>
-            <label className="text-xs font-medium text-[#5F6B7A] block mb-1">Merchant name</label>
+            <label className="text-xs font-medium text-[#00150d]/60 block mb-1">Merchant name</label>
             <input
               type="text"
               value={merchantName}
               onChange={(e) => setMerchantName(e.target.value)}
               placeholder="e.g. Whole Foods"
               required
-              className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm outline-none focus:border-[#00C768] focus:ring-1 focus:ring-[#00C768]/20"
+              className="w-full rounded-md border border-[rgba(0,0,0,0.1)] px-3 py-2 text-sm outline-none focus:border-[#05B959] focus:ring-1 focus:ring-[#05B959]/20"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-[#5F6B7A] block mb-1">Merchant URL</label>
+            <label className="text-xs font-medium text-[#00150d]/60 block mb-1">Merchant URL</label>
             <input
               type="url"
               value={merchantUrl}
               onChange={(e) => setMerchantUrl(e.target.value)}
               placeholder="e.g. https://www.wholefoodsmarket.com"
               required
-              className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm outline-none focus:border-[#00C768] focus:ring-1 focus:ring-[#00C768]/20"
+              className="w-full rounded-md border border-[rgba(0,0,0,0.1)] px-3 py-2 text-sm outline-none focus:border-[#05B959] focus:ring-1 focus:ring-[#05B959]/20"
             />
           </div>
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-xs font-medium text-[#5F6B7A] block mb-1">Max amount (USD)</label>
+              <label className="text-xs font-medium text-[#00150d]/60 block mb-1">Max amount (USD)</label>
               <input
                 type="text"
                 value={maxAmount}
                 onChange={(e) => setMaxAmount(e.target.value)}
                 placeholder="e.g. 150.00"
                 required
-                className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm outline-none focus:border-[#00C768] focus:ring-1 focus:ring-[#00C768]/20"
+                className="w-full rounded-md border border-[rgba(0,0,0,0.1)] px-3 py-2 text-sm outline-none focus:border-[#05B959] focus:ring-1 focus:ring-[#05B959]/20"
               />
             </div>
             <div className="w-32">
-              <label className="text-xs font-medium text-[#5F6B7A] block mb-1">Period</label>
+              <label className="text-xs font-medium text-[#00150d]/60 block mb-1">Period</label>
               <select
                 value={period}
                 onChange={(e) => setPeriod(e.target.value as "once" | "weekly" | "monthly" | "yearly")}
-                className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm outline-none focus:border-[#00C768] focus:ring-1 focus:ring-[#00C768]/20 bg-white"
+                className="w-full rounded-md border border-[rgba(0,0,0,0.1)] px-3 py-2 text-sm outline-none focus:border-[#05B959] focus:ring-1 focus:ring-[#05B959]/20 bg-white h-[38px]"
               >
                 <option value="once">1 time</option>
                 <option value="weekly">Weekly</option>
@@ -164,26 +233,26 @@ export function IssueVirtualCard({
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium text-[#5F6B7A] block mb-1">Description (optional)</label>
+            <label className="text-xs font-medium text-[#00150d]/60 block mb-1">Description (optional)</label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g. Weekly groceries"
-              className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm outline-none focus:border-[#00C768] focus:ring-1 focus:ring-[#00C768]/20"
+              className="w-full rounded-md border border-[rgba(0,0,0,0.1)] px-3 py-2 text-sm outline-none focus:border-[#05B959] focus:ring-1 focus:ring-[#05B959]/20"
             />
           </div>
           <div className="flex gap-2 pt-1">
             <button
               type="submit"
-              className="text-xs font-medium text-white bg-[#00C768] hover:bg-[#05CE6C] px-4 py-2 rounded-md transition-colors"
+              className="text-xs font-medium text-white bg-[#05B959] hover:bg-[#049d4c] px-4 py-2 rounded-md transition-colors"
             >
               Issue card
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="text-xs text-[#5F6B7A] hover:text-[#0A1825] px-4 py-2 rounded-md hover:bg-[#F0F1F1] transition-colors"
+              className="text-xs text-[#00150d]/60 hover:text-[#00150d] px-4 py-2 rounded-md hover:bg-black/5 transition-colors"
             >
               Cancel
             </button>
@@ -193,31 +262,29 @@ export function IssueVirtualCard({
     );
   }
 
-  // ── Loading states ────────────────────────────────────────────────────────
   if (step === "creating" || step === "fetching-credentials") {
     const messages: Record<string, string> = {
       creating: "Creating order intent...",
       "fetching-credentials": "Retrieving credentials...",
     };
     return (
-      <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 flex items-center justify-center gap-2 text-sm text-[#5F6B7A]">
-        <Loader2 className="size-4 animate-spin text-[#00C768]" />
+      <div className="rounded-[10px] border border-[rgba(0,0,0,0.1)] bg-white p-6 flex items-center justify-center gap-2 text-sm text-[#00150d]/60">
+        <Loader2 className="size-4 animate-spin text-[#05B959]" />
         <span>{messages[step]}</span>
       </div>
     );
   }
 
-  // ── Order intent verification (passkey to authorize spending) ─────────────
   if (step === "order-verification" && orderIntent?.phase === "requires-verification") {
     return (
-      <div className="rounded-lg border border-[#E5E7EB] overflow-hidden bg-white">
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-[#E5E7EB] bg-[#E8F9EF]">
-          <ShieldCheck className="size-3.5 text-[#00C768]" />
-          <span className="text-xs font-medium text-[#0A1825]">Authorize spending</span>
+      <div className="rounded-[10px] border border-[rgba(0,0,0,0.1)] overflow-hidden bg-white">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-[rgba(0,0,0,0.06)] bg-black/[0.02]">
+          <ShieldCheck className="size-3.5 text-[#05B959]" />
+          <span className="text-xs font-medium text-[#00150d]">Authorize spending</span>
         </div>
         <div className="p-4">
-          <div className="flex items-center gap-2 text-sm text-[#5F6B7A] mb-3">
-            <Loader2 className="size-4 animate-spin text-[#00C768]" />
+          <div className="flex items-center gap-2 text-sm text-[#00150d]/60 mb-3">
+            <Loader2 className="size-4 animate-spin text-[#05B959]" />
             <span>Waiting for passkey authorization...</span>
           </div>
           <OrderIntentVerification
@@ -231,10 +298,9 @@ export function IssueVirtualCard({
     );
   }
 
-  // ── Error state ───────────────────────────────────────────────────────────
   if (step === "error") {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-2">
+      <div className="rounded-[10px] border border-red-200 bg-red-50 p-4 space-y-2">
         <p className="text-sm font-medium text-red-700">Failed to issue virtual card</p>
         <p className="text-xs text-red-600">{error}</p>
         <button

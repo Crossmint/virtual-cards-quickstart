@@ -69,8 +69,8 @@ export default function LoginPage() {
 
   if (authenticating || user) {
     return (
-      <div className="flex items-center justify-center min-h-dvh bg-white">
-        <Loader2 className="size-5 animate-spin text-[#00C768]" />
+      <div className="flex items-center justify-center min-h-dvh bg-[#F7F5F4]">
+        <Loader2 className="size-5 animate-spin text-[#05B959]" />
       </div>
     );
   }
