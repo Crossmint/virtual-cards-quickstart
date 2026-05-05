@@ -258,7 +258,7 @@ export default function Page() {
               <StepHeader
                 step="02"
                 title="Save credit card"
-                subtitle="Your cards are encrypted and stored securely by Stripe."
+                subtitle="Your cards are encrypted and stored securely."
               />
               <div className="shrink-0 mt-1">
                 {showSaveCard
