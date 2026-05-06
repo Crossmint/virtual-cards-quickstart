@@ -81,7 +81,7 @@ export async function deleteAgent(jwt: string, agentId: string): Promise<void> {
   log("DELETE /agents/:id → success", { agentId, status: res.status });
 }
 
-/** Create a new agent. An agent is required before issuing any virtual cards. */
+/** Create a new agent. An agent is required before allowing card payments. */
 export async function createNewAgent(jwt: string, name: string, description?: string): Promise<AgentResponse> {
   const body = { metadata: { name, description } };
   log("POST /agents → request body", body);
@@ -96,9 +96,9 @@ export async function createNewAgent(jwt: string, name: string, description?: st
   return data;
 }
 
-// ─── Order intents (virtual cards) ──────────────────────────────────────────
+// ─── Order intents (card permissions) ───────────────────────────────────────
 
-/** List all order intents (issued virtual cards) for the authenticated user. */
+/** List all order intents (card permissions) for the authenticated user. */
 export async function fetchOrderIntents(jwt: string): Promise<OrderIntentResponse[]> {
   const res = await fetch(`${BASE_URL}/order-intents`, { headers: authHeaders(jwt) });
   if (!res.ok) throw new Error(`Failed to fetch order intents (${res.status})`);
@@ -124,7 +124,7 @@ export async function fetchAllData(jwt: string): Promise<{
     fetchOrderIntents(jwt).catch(() => [] as OrderIntentResponse[]),
   ]);
 
-  // Fan out enrollment checks for each saved card in parallel.
+  // Fan out verification checks for each saved card in parallel.
   // A single failure shouldn't break the whole page — fall back to "not_started".
   const enrollmentEntries = await Promise.all(
     cards.map(async (c) => {
@@ -147,17 +147,17 @@ export async function fetchAllData(jwt: string): Promise<{
   return { cards, agents, orderIntents, enrollmentStatuses };
 }
 
-// ─── Agentic enrollment ─────────────────────────────────────────────────────
-// Before an agent can use a payment method, the card must be enrolled.
-// Enrollment requires passkey verification from the user.
+// ─── Agentic verification ───────────────────────────────────────────────────
+// Before an agent can use a payment method, the card must be verified.
+// Verification requires passkey confirmation from the user.
 
-/** Check the agentic enrollment status for a payment method. */
+/** Check the agentic verification status for a payment method. */
 export async function checkEnrollment(jwt: string, paymentMethodId: string): Promise<AgenticEnrollmentResponse> {
   const res = await fetch(`${BASE_URL}/payment-methods/${paymentMethodId}/agentic-enrollment`, {
     headers: authHeaders(jwt),
   });
-  // 404 is the server's signal that the card has never been enrolled.
-  // TODO: replace with a proper "not_enrolled" status once the API supports it.
+  // 404 is the server's signal that the card has never been verified.
+  // TODO: replace with a proper "not_verified" status once the API supports it.
   if (res.status === 404) {
     log(`GET /payment-methods/${paymentMethodId}/agentic-enrollment → 404`, { status: "not_started" });
     return { status: "not_started" };
@@ -168,7 +168,7 @@ export async function checkEnrollment(jwt: string, paymentMethodId: string): Pro
   return data;
 }
 
-/** Start agentic enrollment for a payment method. Returns a pending enrollment that needs passkey verification. */
+/** Start agentic verification for a payment method. Returns a pending verification that needs passkey confirmation. */
 export async function enrollPaymentMethod(jwt: string, paymentMethodId: string, email: string): Promise<AgenticEnrollmentResponse> {
   const body = { email };
   log(`POST /payment-methods/${paymentMethodId}/agentic-enrollment → request body`, body);
@@ -184,9 +184,9 @@ export async function enrollPaymentMethod(jwt: string, paymentMethodId: string, 
 }
 
 /**
- * Ensure a payment method is enrolled for agentic payments.
- * - If already active/pending, returns the existing enrollment as-is.
- * - If not started, initiates enrollment and returns the pending response.
+ * Ensure a payment method is verified for agentic payments.
+ * - If already active/pending, returns the existing verification as-is.
+ * - If not started, initiates verification and returns the pending response.
  * Combines the check + start calls into a single server round-trip.
  */
 export async function ensureEnrollment(
@@ -199,9 +199,9 @@ export async function ensureEnrollment(
   return enrollPaymentMethod(jwt, paymentMethodId, email);
 }
 
-// ─── Virtual card issuance ──────────────────────────────────────────────────
+// ─── Card permissions ───────────────────────────────────────────────────────
 
-/** Delete an order intent (virtual card) by ID. */
+/** Delete an order intent (card permission) by ID. */
 export async function deleteOrderIntent(jwt: string, orderIntentId: string): Promise<void> {
   log("DELETE /order-intents/:id → request", { orderIntentId });
   const res = await fetch(`${BASE_URL}/order-intents/${orderIntentId}`, {
@@ -213,7 +213,7 @@ export async function deleteOrderIntent(jwt: string, orderIntentId: string): Pro
 }
 
 /**
- * Create an order intent (virtual card) with spending mandates.
+ * Create an order intent (card permission) with spending rules.
  * The order intent may require passkey verification before becoming active.
  */
 export async function createNewOrderIntent(jwt: string, agentId: string, paymentMethodId: string, mandates: Mandate[]): Promise<OrderIntentResponse> {
@@ -231,7 +231,7 @@ export async function createNewOrderIntent(jwt: string, agentId: string, payment
 }
 
 /**
- * Fetch virtual card credentials (card number, expiration, CVC) for an active order intent.
+ * Fetch secure card credentials (card number, expiration, CVC) for an active order intent.
  * Requires merchant info to generate the credentials.
  */
 export async function fetchCardCredentials(

@@ -1,7 +1,7 @@
 "use client";
 
-// Passkey verification step for agentic enrollment.
-// Used by both "save a new card" and "issue a virtual card" flows.
+// Passkey verification step for agentic card verification.
+// Used by both "save a new card" and "allow payments" flows.
 
 import { Loader2, ShieldCheck, X } from "lucide-react";
 import { PaymentMethodAgenticEnrollmentVerification } from "@crossmint/client-sdk-react-ui";
@@ -28,7 +28,7 @@ export function EnrollmentVerificationStep({
       <div className="flex items-center justify-between px-3 py-2 border-b border-[#E5E7EB] bg-[#E8F9EF]">
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-3.5 text-[#00C768]" />
-          <span className="text-xs font-medium text-[#0A1825]">Complete card enrollment</span>
+          <span className="text-xs font-medium text-[#0A1825]">Complete card verification</span>
         </div>
         {onCancel && (
           <button onClick={onCancel} className="text-[#5F6B7A] hover:text-[#0A1825]">

@@ -12,7 +12,7 @@ function OrderIntentItem({ oi }: { oi: OrderIntentResponse }) {
       <CreditCard className="size-5 text-[#2377FF] shrink-0" />
       <div>
         <div className="text-sm font-medium text-[#00150d]">
-          {description?.value ?? "Virtual Card"}
+          {description?.value ?? "Card Permission"}
         </div>
         {limitLabel && (
           <div className="text-xs text-[#00150d]/50">{limitLabel}</div>
@@ -55,7 +55,7 @@ export function OrderIntentsList({
           <Plus className="size-5 text-[#00150d] group-hover:text-[#05B959] transition-colors" />
         </div>
         <span className="font-medium text-base text-[#00150d] group-hover:text-[#05B959] transition-colors">
-          Issue virtual card
+          Allow payments
         </span>
       </button>
     );
@@ -80,7 +80,7 @@ export function OrderIntentsList({
         <button onClick={onIssueVirtualCard} className="flex items-center gap-3 pl-4 group">
           <Plus className="size-5 text-[#00150d] group-hover:text-[#05B959] transition-colors shrink-0" />
           <span className="text-sm font-medium text-[#00150d] group-hover:text-[#05B959] transition-colors">
-            Issue virtual card
+            Allow payments
           </span>
         </button>
       )}
