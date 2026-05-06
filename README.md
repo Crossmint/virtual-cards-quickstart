@@ -15,15 +15,15 @@
 </div>
 
 ## Introduction
-Issue virtual credit cards through Crossmint's Agentic Payments API. This quickstart demonstrates the full flow from user authentication to issuing scoped virtual cards with spending limits — for both human users and AI agents.
+Give agents permission to pay with a user's card through Crossmint's Agentic Payments API. This quickstart demonstrates the full flow from user authentication to granting scoped card permissions with spending rules — for both human users and AI agents.
 
 **Learn how to:**
 - Authenticate a user via Stytch (Google OAuth)
-- Create an agent to manage virtual card issuance
+- Create an agent to manage card payments
 - Save a payment method via Crossmint's embedded UI
-- Enroll a card for agent-initiated payments with passkey verification
-- Issue virtual cards with per-transaction, daily, and monthly spending mandates
-- Retrieve virtual card credentials (card number, expiration, CVC)
+- Verify a card for agent-initiated payments with passkey verification
+- Give card permissions with per-transaction, daily, and monthly spending rules
+- Retrieve secure card numbers (card number, expiration, CVC)
 
 ## Deploy
 Easily deploy the template to Vercel with the button below. You will need to set the required environment variables in the Vercel dashboard.

@@ -95,7 +95,7 @@ export function IssueVirtualCard({
         await getCredentials(intent.orderIntentId);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create virtual card");
+      setError(err instanceof Error ? err.message : "Failed to create card permission");
       setStep("error");
     }
   };
@@ -247,7 +247,7 @@ export function IssueVirtualCard({
               type="submit"
               className="text-xs font-medium text-white bg-[#05B959] hover:bg-[#049d4c] px-4 py-2 rounded-md transition-colors"
             >
-              Issue card
+              Allow payments
             </button>
             <button
               type="button"
@@ -264,8 +264,8 @@ export function IssueVirtualCard({
 
   if (step === "creating" || step === "fetching-credentials") {
     const messages: Record<string, string> = {
-      creating: "Creating order intent...",
-      "fetching-credentials": "Retrieving credentials...",
+      creating: "Setting up card permission...",
+      "fetching-credentials": "Retrieving secure card number...",
     };
     return (
       <div className="rounded-[10px] border border-[rgba(0,0,0,0.1)] bg-white p-6 flex items-center justify-center gap-2 text-sm text-[#00150d]/60">
@@ -301,7 +301,7 @@ export function IssueVirtualCard({
   if (step === "error") {
     return (
       <div className="rounded-[10px] border border-red-200 bg-red-50 p-4 space-y-2">
-        <p className="text-sm font-medium text-red-700">Failed to issue virtual card</p>
+        <p className="text-sm font-medium text-red-700">Failed to allow payments</p>
         <p className="text-xs text-red-600">{error}</p>
         <button
           onClick={() => { setStep("form"); setError(""); }}

@@ -11,15 +11,15 @@ const features = [
     iconPath: "/shield-check.svg",
   },
   {
-    title: "Scoped Virtual Cards",
+    title: "Scoped Card Permissions",
     description:
-      "Create virtual cards with per-transaction, daily, and monthly spending limits enforced at the network level. Each request returns a new, scoped card number.",
+      "Set spending rules with per-transaction, daily, and monthly limits enforced at the network level. Each approved payment returns a new, secure card number.",
     iconPath: "/gauge.svg",
   },
   {
     title: "Agent-Ready Payments",
     description:
-      "Agents use virtual cards for browser checkouts, Fast Checkout, or any merchant that accepts cards — all within limits the user controls.",
+      "Agents use card permissions for browser checkouts, Fast Checkout, or any merchant that accepts cards — all within spending rules the user controls.",
     iconPath: "/rocket.svg",
   },
 ];
@@ -56,9 +56,9 @@ export function LandingPage({ children }: { children: React.ReactNode }) {
         {/* Content */}
         <div className="relative z-10 flex flex-col gap-12 text-white">
           <div className="flex flex-col gap-4">
-            <h1 className="text-6xl font-bold">Virtual Cards for Agents</h1>
+            <h1 className="text-6xl font-bold">Card Permissions for Agents</h1>
             <p className="text-white/60 text-lg">
-              Get started with the Virtual Cards Quickstart.{" "}
+              Get started with the Card Permissions Quickstart.{" "}
               <a
                 href="https://github.com/Crossmint/virtual-cards-quickstart"
                 style={{ color: "white" }}
@@ -108,10 +108,10 @@ export function LandingPage({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col items-center justify-center min-h-dvh lg:min-h-0 bg-gray-50 px-6 py-12 col-span-1 lg:col-span-3">
         <div className="lg:hidden mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Virtual Cards for Agents
+            Card Permissions for Agents
           </h1>
           <p className="text-gray-600">
-            Get started with the Virtual Cards Quickstart
+            Get started with the Card Permissions Quickstart
           </p>
         </div>
 

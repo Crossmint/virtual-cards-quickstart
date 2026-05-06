@@ -155,7 +155,7 @@ export default function Page() {
   const handleCreateAgent = async () => {
     setCreatingAgent(true);
     try {
-      const result = await createNewAgent(getJwt(), "Virtual Agent", "Default agent for virtual card issuance");
+      const result = await createNewAgent(getJwt(), "Card Payment Agent", "Default agent for card payments");
       setAgent(result);
     } finally {
       setCreatingAgent(false);
@@ -223,12 +223,12 @@ export default function Page() {
         {/* Sidebar — absolutely positioned to the left of the centered content */}
         <aside className="absolute right-full top-[88px] pr-10 w-52 pt-1 -translate-x-24">
           <h1 className="font-[family-name:var(--font-heading)] font-medium text-[28px] leading-none tracking-[-0.84px] text-[#00150d] mb-8">
-            Virtual Cards
+            Card Permissions
           </h1>
           <nav className="border-l border-[rgba(0,0,0,0.1)] flex flex-col gap-2">
             <SidebarItem active={activeStep === 1} completed={!!agent} label="Create agent" />
             <SidebarItem active={activeStep === 2} completed={hasEnrolledCard} label="Link credit card" />
-            <SidebarItem active={activeStep === 3} completed={orderIntents.length > 0} label="Create virtual card" />
+            <SidebarItem active={activeStep === 3} completed={orderIntents.length > 0} label="Allow payments" />
           </nav>
         </aside>
 
@@ -240,7 +240,7 @@ export default function Page() {
             <StepHeader
               step="01"
               title="Create agent"
-              subtitle="Create your agent to start issuing virtual cards."
+              subtitle="Create your agent to start allowing card payments."
             />
             <AgentSection
               agent={agent}
@@ -293,13 +293,13 @@ export default function Page() {
             )}
           </div>
 
-          {/* Step 3 — Issue virtual card */}
+          {/* Step 3 — Allow payments */}
           <div className={`bg-white rounded-[10px] p-5 transition-opacity ${!agent || !hasEnrolledCard ? "opacity-50 pointer-events-none" : ""}`}>
             <div className="flex items-start justify-between">
               <StepHeader
                 step="03"
-                title="Issue virtual card"
-                subtitle="Issue a virtual card scoped to a specific agent and spending mandate."
+                title="Allow payments"
+                subtitle="Give an agent permission to pay with your card using spending rules."
               />
               <div className="shrink-0 mt-1">
                 {orderIntents.length > 0 && (

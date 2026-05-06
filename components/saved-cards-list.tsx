@@ -109,7 +109,7 @@ export function SavedCardsList({
         setVerifyingId(pmId);
       }
     } catch (err) {
-      console.error("Enrollment failed:", err);
+      console.error("Verification failed:", err);
     } finally {
       setEnrollingId(null);
     }
@@ -152,7 +152,7 @@ export function SavedCardsList({
                   {isEnrolled && (
                     <span className="inline-flex items-center gap-1 text-xs font-medium text-[#00150d]/40 border border-[rgba(0,0,0,0.15)] px-2.5 py-1 rounded-[6px]">
                       <Check className="size-3 shrink-0" />
-                      Enrolled
+                      Verified
                     </span>
                   )}
                   {deletingId === pmId
@@ -166,7 +166,7 @@ export function SavedCardsList({
                 <div className="flex items-center justify-between gap-3 pl-3 pr-2 py-2 rounded-md bg-[#F5FCF8] border border-[#DDF5E8]">
                   <div className="flex items-center gap-2 text-xs text-[#03A14D]">
                     <Info className="size-3.5 shrink-0 text-[#03A14D]" />
-                    <span>This card needs to be enrolled for agentic use before creating virtual cards.</span>
+                    <span>This card needs to be verified for agentic use before allowing payments.</span>
                   </div>
                   <button
                     onClick={() => handleEnroll(pmId)}
@@ -174,7 +174,7 @@ export function SavedCardsList({
                     className="inline-flex items-center gap-1.5 shrink-0 text-xs font-medium px-3 py-1.5 rounded-[4px] bg-[#05B959] text-white hover:bg-[#049d4c] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                   >
                     {isEnrolling && <Loader2 className="size-3.5 animate-spin" />}
-                    <span>Enroll card</span>
+                    <span>Verify card</span>
                   </button>
                 </div>
               )}
