@@ -43,12 +43,13 @@ function authHeaders(jwt: string): HeadersInit {
 export async function fetchPaymentMethods(jwt: string): Promise<PaymentMethodResponse[]> {
   const res = await fetch(`${BASE_URL}/payment-methods`, { headers: authHeaders(jwt) });
   if (!res.ok) throw new Error(`Failed to fetch payment methods (${res.status})`);
-  const body = await res.json();
+  const body: { data: PaymentMethodResponse[]; nextCursor?: string; previousCursor?: string } =
+    await res.json();
   log("GET /payment-methods → response", body);
   // The endpoint returns a cursor-paginated `{ data, nextCursor?, previousCursor? }`
   // envelope. This quickstart only reads the first page; pagination is left as an
   // exercise for production integrations.
-  return Array.isArray(body) ? body : (body?.data ?? []);
+  return body.data;
 }
 
 /** Delete a saved payment method. */
