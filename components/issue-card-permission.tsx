@@ -31,7 +31,7 @@ function cardExpDisplay(card: PaymentMethodResponse) {
   return m && y ? `Exp. date ${m}/${y.slice(-2)}` : null;
 }
 
-export function IssueVirtualCard({
+export function IssueCardPermission({
   agentId,
   paymentMethodId,
   cards,

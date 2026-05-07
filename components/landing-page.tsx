@@ -60,7 +60,7 @@ export function LandingPage({ children }: { children: React.ReactNode }) {
             <p className="text-white/60 text-lg">
               Get started with the Card Permissions Quickstart.{" "}
               <a
-                href="https://github.com/Crossmint/virtual-cards-quickstart"
+                href="https://github.com/Crossmint/card-permissions-quickstart"
                 style={{ color: "white" }}
                 target="_blank"
                 rel="noopener noreferrer"

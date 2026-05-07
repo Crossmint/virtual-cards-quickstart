@@ -34,7 +34,7 @@ export type AgentResponse = {
   metadata: { name: string; description?: string };
 };
 
-// Mandates define the rules/constraints for an order intent (virtual card):
+// Mandates define the rules/constraints for an order intent (card permission):
 //   - maxAmount: spending limit per transaction/day/month/year
 //   - description: free-text description of intended use
 //   - prompt: instructions for the agent
@@ -45,8 +45,8 @@ export type Mandate =
 
 // Order intent phases:
 //   - "requires-verification": passkey authorization needed before the card is active
-//   - "active": virtual card is ready, credentials can be fetched
-//   - "expired": virtual card has expired and can no longer be used
+//   - "active": card permission is ready, credentials can be fetched
+//   - "expired": card permission has expired and can no longer be used
 export type OrderIntentResponse =
   | {
       orderIntentId: string;

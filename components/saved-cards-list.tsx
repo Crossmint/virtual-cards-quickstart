@@ -18,7 +18,7 @@ export function SavedCardsList({
   getJwt,
   email,
   enrollmentStatuses,
-  onIssueVirtualCard,
+  onIssueCardPermission,
   onDeleteCard,
   onAddCard,
   onEnrollmentComplete,
@@ -30,7 +30,7 @@ export function SavedCardsList({
   getJwt: () => string;
   email: string;
   enrollmentStatuses: Record<string, string>;
-  onIssueVirtualCard: (paymentMethodId: string) => void;
+  onIssueCardPermission: (paymentMethodId: string) => void;
   onDeleteCard: (paymentMethodId: string) => Promise<void>;
   onAddCard?: () => void;
   onEnrollmentComplete?: () => void;
