@@ -4,7 +4,7 @@
 <img width="200" alt="Image" src="https://github.com/user-attachments/assets/8b617791-cd37-4a5a-8695-a7c9018b7c70" />
 <br>
 <br>
-<h1>Virtual Cards Quickstart</h1>
+<h1>Card Permissions Quickstart</h1>
 
 <div align="center">
 <a href="https://virtual-cards.demos-crossmint.com">Live Demo</a> | <a href="https://docs.crossmint.com/agents/overview">Docs</a> | <a href="https://www.crossmint.com/quickstarts">See all quickstarts</a>
@@ -28,12 +28,12 @@ Give agents permission to pay with a user's card through Crossmint's Agentic Pay
 ## Deploy
 Easily deploy the template to Vercel with the button below. You will need to set the required environment variables in the Vercel dashboard.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FCrossmint%2Fvirtual-cards-quickstart&env=NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN,NEXT_PUBLIC_CROSSMINT_CLIENT_API_KEY)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FCrossmint%2Fcard-permissions-quickstart&env=NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN,NEXT_PUBLIC_CROSSMINT_CLIENT_API_KEY)
 
 ## Setup
 1. Clone the repository and navigate to the project folder:
 ```bash
-git clone https://github.com/Crossmint/virtual-cards-quickstart.git && cd virtual-cards-quickstart
+git clone https://github.com/Crossmint/card-permissions-quickstart.git && cd card-permissions-quickstart
 ```
 
 2. Install all dependencies:

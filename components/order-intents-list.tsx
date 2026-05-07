@@ -26,13 +26,13 @@ export function OrderIntentsList({
   orderIntents,
   loading,
   getJwt,
-  onIssueVirtualCard,
+  onIssueCardPermission,
   viewMode = "ui",
 }: {
   orderIntents: OrderIntentResponse[];
   loading: boolean;
   getJwt: () => string;
-  onIssueVirtualCard?: () => void;
+  onIssueCardPermission?: () => void;
   viewMode?: "ui" | "code";
 }) {
   if (loading) {
@@ -48,9 +48,9 @@ export function OrderIntentsList({
   }
 
   if (orderIntents.length === 0) {
-    if (!onIssueVirtualCard) return null;
+    if (!onIssueCardPermission) return null;
     return (
-      <button onClick={onIssueVirtualCard} className="flex items-center gap-4 h-[35px] group">
+      <button onClick={onIssueCardPermission} className="flex items-center gap-4 h-[35px] group">
         <div className="bg-white border-[1.5px] border-[rgba(0,0,0,0.1)] rounded-[6px] w-[56px] h-[35px] flex items-center justify-center group-hover:border-[#05B959]/40 transition-colors shrink-0">
           <Plus className="size-5 text-[#00150d] group-hover:text-[#05B959] transition-colors" />
         </div>
@@ -76,8 +76,8 @@ export function OrderIntentsList({
           <OrderIntentItem key={oi.orderIntentId} oi={oi} />
         ))}
       </div>
-      {onIssueVirtualCard && (
-        <button onClick={onIssueVirtualCard} className="flex items-center gap-3 pl-4 group">
+      {onIssueCardPermission && (
+        <button onClick={onIssueCardPermission} className="flex items-center gap-3 pl-4 group">
           <Plus className="size-5 text-[#00150d] group-hover:text-[#05B959] transition-colors shrink-0" />
           <span className="text-sm font-medium text-[#00150d] group-hover:text-[#05B959] transition-colors">
             Allow payments

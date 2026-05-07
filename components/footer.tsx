@@ -6,7 +6,7 @@ export function Footer() {
       <div className="flex gap-6 flex-wrap items-center justify-center text-sm text-[#00150d]/50">
         <a
           className="flex items-center gap-2 hover:text-[#00150d] transition-colors"
-          href="https://github.com/Crossmint/virtual-cards-quickstart"
+          href="https://github.com/Crossmint/card-permissions-quickstart"
           target="_blank"
           rel="noopener noreferrer"
         >

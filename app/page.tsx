@@ -9,7 +9,7 @@ import type { PaymentMethodResponse, AgentResponse, OrderIntentResponse } from "
 import { fetchAllData, createNewAgent, deleteAgent, removePaymentMethod } from "@/lib/crossmint-api";
 import { SavedCardsList } from "@/components/saved-cards-list";
 import { SaveCardSection } from "@/components/save-card-section";
-import { IssueVirtualCard } from "@/components/issue-virtual-card";
+import { IssueCardPermission } from "@/components/issue-card-permission";
 import { OrderIntentsList } from "@/components/order-intents-list";
 import { AgentSection } from "@/components/agent-section";
 
@@ -275,7 +275,7 @@ export default function Page() {
               getJwt={getJwt}
               email={userEmail}
               enrollmentStatuses={enrollmentStatuses}
-              onIssueVirtualCard={(paymentMethodId) => setIssuingForCard(paymentMethodId)}
+              onIssueCardPermission={(paymentMethodId) => setIssuingForCard(paymentMethodId)}
               onDeleteCard={handleDeleteCard}
               onAddCard={showSaveCard || (savedCards.length > 0 && orderIntents.length === 0) ? undefined : () => setShowSaveCard(true)}
               onEnrollmentComplete={fetchData}
@@ -313,7 +313,7 @@ export default function Page() {
               loading={loading}
               getJwt={getJwt}
               viewMode={orderIntentViewMode}
-              onIssueVirtualCard={
+              onIssueCardPermission={
                 !issuingForCard
                   ? () => {
                       const firstEnrolled = savedCards.find(
@@ -327,7 +327,7 @@ export default function Page() {
 
             {issuingForCard && agent && (
               <div className="mt-4">
-                <IssueVirtualCard
+                <IssueCardPermission
                   agentId={agent.agentId}
                   paymentMethodId={issuingForCard}
                   cards={savedCards.filter((c) => enrollmentStatuses[c.paymentMethodId] === "active")}
